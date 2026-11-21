@@ -7,6 +7,8 @@ repo_url: https://github.com/openpilotcc/leLab
 repo_name: openpilotcc/leLab
 edit_uri: edit/feat/chinese-i18n/docs/
 
+docs_dir: site-docs
+
 theme:
   name: material
   language: zh
