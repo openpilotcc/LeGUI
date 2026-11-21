@@ -884,6 +884,25 @@ const Calibration = () => {
                 </Alert>
               )}
 
+              {calibrationStatus.status === "waiting_middle" && (
+                <div className="space-y-3">
+                  <Alert className="bg-amber-900/50 border-amber-700 text-amber-100">
+                    <Activity className="h-4 w-4" />
+                    <AlertDescription>
+                      <strong>Important:</strong> {i18n.t("Pose the arm in the exact middle position shown in the demo video below — this pose becomes the zero point for every joint, and it is what makes leader and follower poses line up. Then confirm.")}</AlertDescription>
+                  </Alert>
+                  <div className="flex justify-center">
+                    <Button
+                      onClick={handleCompleteStep}
+                      disabled={!calibrationStatus.calibration_active}
+                      className="px-8 py-3 rounded-full bg-blue-600 hover:bg-blue-700"
+                    >
+                      <CheckCircle className="w-4 h-4 mr-2" />
+                      {i18n.t("Middle position ready — start range recording")}</Button>
+                  </div>
+                </div>
+              )}
+
               {calibrationStatus.status === "recording" && (() => {
                 const ranges = calibrationStatus.recorded_ranges ?? {};
                 const motors = Object.entries(ranges);

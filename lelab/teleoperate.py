@@ -40,6 +40,10 @@ class TeleoperateRequest(BaseModel):
     follower_port: str
     leader_config: str
     follower_config: str
+    # Camera configs of the robot record, so the follower carries its cameras
+    # and /camera-feed can stream them during the session. Optional: absent
+    # cameras simply mean no live previews during teleoperation.
+    cameras: dict[str, dict[str, Any]] | None = None
 
 
 def get_joint_positions_from_robot(robot) -> dict[str, float]:
@@ -141,10 +145,14 @@ def handle_start_teleoperation(request: TeleoperateRequest, websocket_manager=No
             request.leader_config, request.follower_config
         )
 
-        # Create robot and teleop configs
+        # Create robot and teleop configs. The follower carries the robot
+        # record's cameras (when provided) so /camera-feed can stream live
+        # previews during the session; the leader has no cameras.
+        camera_configs = _record._build_camera_configs(request.cameras or {}, _record._platform_backend())
         robot_config = SO101FollowerConfig(
             port=request.follower_port,
             id=follower_config_name,
+            cameras=camera_configs,
         )
 
         teleop_config = SO101LeaderConfig(

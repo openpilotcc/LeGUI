@@ -80,7 +80,9 @@ class CalibrationStatus:
     """Status information for calibration process"""
 
     calibration_active: bool = False
-    status: str = "idle"  # "idle", "connecting", "recording", "completed", "error", "stopping"
+    status: str = (
+        "idle"  # "idle", "connecting", "waiting_middle", "recording", "completed", "error", "stopping"
+    )
     device_type: str | None = None
     error: str | None = None
     message: str = ""
@@ -212,6 +214,11 @@ class CalibrationManager:
                 self._step_complete.set()
                 return {"success": True, "message": "Range recording completed"}
 
+            elif self.status.status == "waiting_middle":
+                # User has posed the arm in the middle position; homing runs next.
+                self._step_complete.set()
+                return {"success": True, "message": "Middle position confirmed"}
+
             else:
                 return {"success": False, "message": f"Cannot complete step in status: {self.status.status}"}
 
@@ -282,6 +289,24 @@ class CalibrationManager:
 
             if self.stop_calibration:
                 logger.info("Calibration stopped after device connection")
+                self._cleanup_and_finish("Calibration cancelled")
+                return
+
+            # Start Step 1: Homing — but only after the user has posed the arm.
+            # set_half_turn_homings makes the pose at call time each motor's
+            # half-turn zero, so the pose the user confirms here becomes the
+            # zero point. Confirming the official middle position on BOTH arms
+            # is what makes leader and follower poses line up in teleoperation.
+            self._update_status(
+                status="waiting_middle",
+                message="Place the arm in the middle position shown in the demo video, then confirm.",
+                step=0,
+            )
+            self._step_complete.clear()
+            while not self._step_complete.is_set() and not self.stop_calibration:
+                time.sleep(0.2)
+            if self.stop_calibration:
+                logger.info("Calibration stopped while waiting for middle position")
                 self._cleanup_and_finish("Calibration cancelled")
                 return
 

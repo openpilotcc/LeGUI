@@ -43,6 +43,8 @@ const RobotConfigManager: React.FC<RobotConfigManagerProps> = ({
           follower_port: robot.follower_port,
           leader_config: robot.leader_config,
           follower_config: robot.follower_config,
+          // Backend streams these over /camera-feed during the session.
+          cameras: Object.fromEntries(robot.cameras.map((c) => [c.name, c])),
         }),
       });
       const data = await res.json();
