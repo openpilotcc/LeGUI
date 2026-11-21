@@ -45,7 +45,7 @@ lelab --https --host 0.0.0.0
 
 ``` bash
 uv tool install --force --with-executables-from huggingface_hub \
-  git+https://github.com/openpilotcc/leLab.git@feat/chinese-i18n
+  git+https://github.com/openpilotcc/leLab.git
 lelab --host 0.0.0.0
 ```
 

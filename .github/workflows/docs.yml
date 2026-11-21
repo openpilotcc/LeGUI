@@ -6,7 +6,7 @@ name: docs
 
 on:
   push:
-    branches: [feat/chinese-i18n, main]
+    branches: [main]
   workflow_dispatch:
 
 permissions:

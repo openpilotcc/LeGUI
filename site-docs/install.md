@@ -16,12 +16,12 @@
 
 ``` bash
 uv tool install --force --with-executables-from huggingface_hub \
-  git+https://github.com/openpilotcc/leLab.git@feat/chinese-i18n
+  git+https://github.com/openpilotcc/leLab.git
 ```
 
 说明：
 
-- `@feat/chinese-i18n` 是发布分支，**必须带上**——不带时装的是默认分支（上游镜像，不含中文与局域网修复）。
+- 发布内容已在默认分支 main 上，直接安装即可。
 - `--with-executables-from huggingface_hub` 会顺带装好 `hf` 命令（登录 Hugging Face、上传数据集要用）。
 
 ## 启动与停止
@@ -39,7 +39,7 @@ lelab --stop            # 停止并释放端口
 
 ``` bash
 uv tool install --force --with-executables-from huggingface_hub \
-  git+https://github.com/openpilotcc/leLab.git@feat/chinese-i18n
+  git+https://github.com/openpilotcc/leLab.git
 ```
 
 然后重启服务即可。也可以直接使用页面右上角的「检查更新」——应用内的 **Update now** 按钮会重装同一个发布分支，不会覆盖你的本地增强（它会锁定安装时使用的分支名）。

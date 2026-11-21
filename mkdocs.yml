@@ -5,7 +5,7 @@ site_description: >-
 site_url: https://openpilotcc.github.io/leLab/
 repo_url: https://github.com/openpilotcc/leLab
 repo_name: openpilotcc/leLab
-edit_uri: edit/feat/chinese-i18n/docs/
+edit_uri: edit/main/docs/
 
 docs_dir: site-docs
 

@@ -35,7 +35,7 @@ LeGUI pins LeRobot to the latest upstream release tag (currently **`v0.7.0`**, s
 
 ```bash
 uv tool install --force --with-executables-from huggingface_hub \
-  git+https://github.com/openpilotcc/leLab.git@feat/chinese-i18n
+  git+https://github.com/openpilotcc/leLab.git
 ```
 
 Then:
