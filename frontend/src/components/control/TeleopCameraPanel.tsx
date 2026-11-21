@@ -7,6 +7,7 @@ import { Switch } from "@/components/ui/switch";
 import { useRobots } from "@/hooks/useRobots";
 import { useAvailableCameras } from "@/hooks/useAvailableCameras";
 import { previewDeviceId } from "@/lib/cameraConfig";
+import { CAMERA_SECURE_CONTEXT_KEY } from "@/lib/mediaDevices";
 import CameraFeed from "./CameraFeed";
 
 /**
@@ -26,7 +27,7 @@ const TeleopCameraPanel: React.FC = () => {
   // attempt) — useful if a camera was unplugged and reconnected.
   const [reloadKey, setReloadKey] = useState(0);
   const { selectedRecord, isLoading: robotsLoading } = useRobots();
-  const { cameras: availableCameras } = useAvailableCameras({ enabled });
+  const { cameras: availableCameras, unavailable: camerasUnavailable } = useAvailableCameras({ enabled });
 
   // Feeds come solely from the robot's configured cameras, streamed by their
   // stored browser device_id or, in a browser that doesn't know that ID, by
@@ -88,9 +89,11 @@ const TeleopCameraPanel: React.FC = () => {
           </div>
         ) : (
           <p className="text-sm text-gray-500">
-            {robotsLoading
-              ? i18n.t("Loading robot...")
-              : i18n.t("No cameras configured for this robot. Add them during calibration to see live feeds here.")}
+            {camerasUnavailable
+              ? i18n.t(CAMERA_SECURE_CONTEXT_KEY)
+              : robotsLoading
+                ? i18n.t("Loading robot...")
+                : i18n.t("No cameras configured for this robot. Add them during calibration to see live feeds here.")}
           </p>
         )
       ) : (

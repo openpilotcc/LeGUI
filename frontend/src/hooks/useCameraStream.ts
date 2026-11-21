@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import { mediaDevicesAvailable } from "@/lib/mediaDevices";
 
 /**
  * Attach a live browser camera stream to a `<video>` element by deviceId.
@@ -57,6 +58,7 @@ export function useCameraStream(deviceId: string, paused: boolean, size?: Camera
   // Only retry when we're actually in the error state, so an unrelated change
   // (e.g. plugging in a mic) never tears down a healthy stream.
   useEffect(() => {
+    if (!mediaDevicesAvailable()) return;
     const onDeviceChange = () => {
       if (hasErrorRef.current) setRetryKey((k) => k + 1);
     };
@@ -68,6 +70,12 @@ export function useCameraStream(deviceId: string, paused: boolean, size?: Camera
   useEffect(() => {
     if (paused || !deviceId) {
       if (!deviceId) setHasError(true);
+      return;
+    }
+    if (!mediaDevicesAvailable()) {
+      // Insecure context: getUserMedia does not exist. Surface the error UI
+      // instead of crashing; callers show the secure-context hint.
+      setHasError(true);
       return;
     }
     let cancelled = false;

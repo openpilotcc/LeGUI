@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
 import { useApi } from "@/contexts/ApiContext";
+import { mediaDevicesAvailable } from "@/lib/mediaDevices";
 
 export interface AvailableCamera {
   index: number;
@@ -31,6 +32,12 @@ export function useAvailableCameras({
   const refresh = useCallback(async (): Promise<AvailableCamera[]> => {
     setIsLoading(true);
     try {
+      if (!mediaDevicesAvailable()) {
+        // Insecure context (plain-HTTP LAN IP): the browser camera API does
+        // not exist. Report no cameras; callers show the secure-context hint.
+        setCameras([]);
+        return [];
+      }
       // Need a permission grant before enumerateDevices() returns labels.
       try {
         const probe = await navigator.mediaDevices.getUserMedia({ video: true });
@@ -90,7 +97,7 @@ export function useAvailableCameras({
   }, [baseUrl, fetchWithHeaders]);
 
   useEffect(() => {
-    if (!enabled) return;
+    if (!enabled || !mediaDevicesAvailable()) return;
     refresh();
     const handler = () => refresh();
     navigator.mediaDevices.addEventListener("devicechange", handler);
@@ -98,5 +105,5 @@ export function useAvailableCameras({
       navigator.mediaDevices.removeEventListener("devicechange", handler);
   }, [enabled, refresh]);
 
-  return { cameras, isLoading, refresh };
+  return { cameras, isLoading, refresh, unavailable: !mediaDevicesAvailable() };
 }

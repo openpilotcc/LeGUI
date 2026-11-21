@@ -19,6 +19,7 @@ import {
 } from "@/components/ui/collapsible";
 import { useToast } from "@/hooks/use-toast";
 import { useAvailableCameras } from "@/hooks/useAvailableCameras";
+import { CAMERA_SECURE_CONTEXT_KEY } from "@/lib/mediaDevices";
 import { useCameraReference } from "@/hooks/useCameraReference";
 import BrowserCameraPreview from "@/components/control/BrowserCameraPreview";
 import CameraRotationSelect from "@/components/control/CameraRotationSelect";
@@ -75,6 +76,7 @@ const CameraConfiguration: React.FC<CameraConfigurationProps> = ({
     cameras: availableCameras,
     isLoading: isLoadingCameras,
     refresh: refreshCameras,
+    unavailable: camerasUnavailable,
   } = useAvailableCameras();
   const [selectedCameraIndex, setSelectedCameraIndex] = useState<string>("");
   const [cameraName, setCameraName] = useState("");
@@ -324,9 +326,11 @@ const CameraConfiguration: React.FC<CameraConfigurationProps> = ({
         <div className="text-center py-8 text-gray-500">
           <Camera className="w-12 h-12 mx-auto mb-4 text-gray-600" />
           <p>
-            {readOnly
-              ? i18n.t("No cameras are configured for this robot.")
-              : i18n.t("No cameras configured. Add a camera to get started.")}
+            {camerasUnavailable
+              ? i18n.t(CAMERA_SECURE_CONTEXT_KEY)
+              : readOnly
+                ? i18n.t("No cameras are configured for this robot.")
+                : i18n.t("No cameras configured. Add a camera to get started.")}
           </p>
         </div>
       )}

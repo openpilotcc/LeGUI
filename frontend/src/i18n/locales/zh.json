@@ -556,5 +556,6 @@
   "policy needs": "策略需要",
   "(installed via": "（安装方式：",
   "), which this environment doesn't have yet. Install it to train this policy.": "），当前环境还没有安装。安装后才能训练此策略。",
-  "Configure": "配置"
+  "Configure": "配置",
+  "Camera access needs HTTPS or localhost. Open LeLab via http://localhost:8000, or set up HTTPS (see HTTPS_SETUP.md).": "摄像头功能需要 HTTPS 或 localhost 环境：请改用 http://localhost:8000 访问，或为服务器配置 HTTPS（参见 HTTPS_SETUP.md）。"
 }

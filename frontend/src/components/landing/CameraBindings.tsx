@@ -9,6 +9,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { AvailableCamera } from "@/hooks/useAvailableCameras";
+import { CAMERA_SECURE_CONTEXT_KEY, mediaDevicesAvailable } from "@/lib/mediaDevices";
 import { ImageFeatures } from "@/lib/checkpointsApi";
 import BrowserCameraPreview from "@/components/control/BrowserCameraPreview";
 import CameraRotationSelect from "@/components/control/CameraRotationSelect";
@@ -60,7 +61,9 @@ const CameraBindings: React.FC<CameraBindingsProps> = ({
             <SelectContent className="bg-gray-900 border-gray-700 text-white">
               {availableCameras.length === 0 ? (
                 <div className="px-2 py-1.5 text-xs text-gray-500">
-                  {i18n.t("No cameras detected")}</div>
+                  {mediaDevicesAvailable()
+                    ? i18n.t("No cameras detected")
+                    : i18n.t(CAMERA_SECURE_CONTEXT_KEY)}</div>
               ) : (
                 availableCameras.map((cam) => (
                   <SelectItem key={cam.index} value={String(cam.index)}>
