@@ -511,7 +511,12 @@ class CalibrationManager:
         """Clean up and finish calibration"""
         self._cleanup_device()
         self._recording_active = False
-        self._update_status(calibration_active=False, status=status, message=message)
+        # Surface failures in the `error` field as well: the frontend's error
+        # alert reads only `error`, and generic exceptions (serial
+        # ConnectionError and friends) used to end up solely in `message`,
+        # leaving the status badge showing an error with no text.
+        error = message if status == "error" else None
+        self._update_status(calibration_active=False, status=status, message=message, error=error)
 
     def _cleanup_device(self):
         """Clean up device connection.
