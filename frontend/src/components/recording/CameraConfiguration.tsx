@@ -19,19 +19,18 @@ import {
 } from "@/components/ui/collapsible";
 import { useToast } from "@/hooks/use-toast";
 import { useAvailableCameras } from "@/hooks/useAvailableCameras";
-import { CAMERA_SECURE_CONTEXT_KEY } from "@/lib/mediaDevices";
 import { useCameraReference } from "@/hooks/useCameraReference";
-import BrowserCameraPreview from "@/components/control/BrowserCameraPreview";
+import BackendCameraFeed from "@/components/control/BackendCameraFeed";
 import CameraRotationSelect from "@/components/control/CameraRotationSelect";
 import CameraReferenceControls from "@/components/recording/CameraReferenceControls";
 import {
   CameraConfig,
   cameraRotation,
   cameraRotationError,
-  previewDeviceId,
   rotatedDimensions,
 } from "@/lib/cameraConfig";
 export type { CameraConfig } from "@/lib/cameraConfig";
+import { useApi } from "@/contexts/ApiContext";
 
 // Sentinels distinguish "leave unset" (auto-detect / platform default) from an
 // explicit choice. Radix Select disallows an empty-string value, so we map these
@@ -81,29 +80,11 @@ const CameraConfiguration: React.FC<CameraConfigurationProps> = ({
   const [selectedCameraIndex, setSelectedCameraIndex] = useState<string>("");
   const [cameraName, setCameraName] = useState("");
 
-  // cv2's AVFoundation order is uniqueID-sorted, so plugging/unplugging a
-  // device between sessions shifts indices. The browser device_id stays
-  // stable per-origin, so use it to refresh each seeded camera's
-  // camera_index — otherwise the recorder opens the wrong physical device
-  // and the dropdown's "already added" check guards a stale index.
-  useEffect(() => {
-    if (availableCameras.length === 0 || cameras.length === 0) return;
-    let changed = false;
-    const refreshed = cameras.map((cam) => {
-      if (!cam.device_id) return cam;
-      const match = availableCameras.find((m) => m.deviceId === cam.device_id);
-      if (match && match.index !== cam.camera_index) {
-        changed = true;
-        return { ...cam, camera_index: match.index };
-      }
-      return cam;
-    });
-    if (changed) onCamerasChange(refreshed);
-    // We deliberately don't depend on `cameras`/`onCamerasChange` to avoid
-    // re-running every keystroke in the camera-name input — re-syncing only
-    // when the available-cameras list itself changes is sufficient.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [availableCameras]);
+  // cv2 camera indices can shift between sessions when devices are plugged or
+  // unplugged (uniqueID-sorted order on macOS). The recorder opens cameras by
+  // index, and previews now stream from those same indices, so any drift has
+  // to be corrected manually via the camera picker — the index shown in the
+  // dropdown is always the one the recorder will open.
 
   const addCamera = () => {
     if (!selectedCameraIndex || !cameraName.trim()) {
@@ -129,13 +110,10 @@ const CameraConfiguration: React.FC<CameraConfigurationProps> = ({
       return;
     }
 
-    // Block duplicates by either cv2 index or browser deviceId — a stale
-    // camera_index in a seeded camera can otherwise let the same physical
-    // device sneak in under a different index.
+    // Block duplicates by cv2 index — the recorder and the previews both use
+    // the index, so the same device can't sneak in under a different name.
     const isDuplicate = cameras.some(
-      (cam) =>
-        cam.camera_index === selectedCamera.index ||
-        (selectedCamera.deviceId && cam.device_id === selectedCamera.deviceId),
+      (cam) => cam.camera_index === selectedCamera.index,
     );
     if (isDuplicate) {
       toast({
@@ -151,7 +129,7 @@ const CameraConfiguration: React.FC<CameraConfigurationProps> = ({
       name: cameraName.trim(),
       type: "opencv",
       camera_index: selectedCamera.index,
-      device_id: selectedCamera.deviceId,
+      device_id: "",
       width: 640,
       height: 480,
       fps: 30,
@@ -247,9 +225,7 @@ const CameraConfiguration: React.FC<CameraConfigurationProps> = ({
               <SelectContent className="bg-gray-800 border-gray-700">
                 {availableCameras.map((camera) => {
                   const alreadyAdded = cameras.some(
-                    (cam) =>
-                      cam.camera_index === camera.index ||
-                      (camera.deviceId && cam.device_id === camera.deviceId),
+                    (cam) => cam.camera_index === camera.index,
                   );
                   return (
                     <SelectItem
@@ -310,7 +286,6 @@ const CameraConfiguration: React.FC<CameraConfigurationProps> = ({
               <CameraPreview
                 key={camera.id}
                 camera={camera}
-                deviceId={previewDeviceId(camera, availableCameras)}
                 paused={streamsPaused}
                 readOnly={readOnly}
                 robotName={robotName}
@@ -326,11 +301,9 @@ const CameraConfiguration: React.FC<CameraConfigurationProps> = ({
         <div className="text-center py-8 text-gray-500">
           <Camera className="w-12 h-12 mx-auto mb-4 text-gray-600" />
           <p>
-            {camerasUnavailable
-              ? i18n.t(CAMERA_SECURE_CONTEXT_KEY)
-              : readOnly
-                ? i18n.t("No cameras are configured for this robot.")
-                : i18n.t("No cameras configured. Add a camera to get started.")}
+            {readOnly
+              ? i18n.t("No cameras are configured for this robot.")
+              : i18n.t("No cameras configured. Add a camera to get started.")}
           </p>
         </div>
       )}
@@ -340,7 +313,6 @@ const CameraConfiguration: React.FC<CameraConfigurationProps> = ({
 
 interface CameraPreviewProps {
   camera: CameraConfig;
-  deviceId: string;
   paused: boolean;
   readOnly: boolean;
   robotName?: string;
@@ -350,13 +322,13 @@ interface CameraPreviewProps {
 
 const CameraPreview: React.FC<CameraPreviewProps> = ({
   camera,
-  deviceId,
   paused,
   readOnly,
   robotName,
   onRemove,
   onUpdate,
 }) => {
+  const { baseUrl } = useApi();
   const previewRef = useRef<HTMLDivElement>(null);
   const [ghostOpacity, setGhostOpacity] = useState(0.5);
   const reference = useCameraReference(readOnly ? robotName : undefined, camera.name);
@@ -366,16 +338,25 @@ const CameraPreview: React.FC<CameraPreviewProps> = ({
   return (
     <div className="bg-gray-900 rounded-lg border border-gray-700 overflow-hidden">
       <div ref={previewRef}>
-      <BrowserCameraPreview
-        deviceId={deviceId}
-        paused={paused}
-        ghostSrc={reference.url ?? undefined}
-        ghostOpacity={ghostOpacity}
-        rotation={camera.rotation}
-        width={camera.width}
-        height={camera.height}
-        fallback={paused ? i18n.t("Preview paused") : deviceId ? undefined : "No browser match"}
-      />
+      {paused ? (
+        <div className="w-full aspect-video bg-black rounded-lg border border-gray-800 flex items-center justify-center">
+          <span className="text-xs text-gray-500">{i18n.t("Preview paused")}</span>
+        </div>
+      ) : rotationError ? (
+        <div className="w-full aspect-video bg-black rounded-lg border border-gray-800 flex items-center justify-center">
+          <span className="text-xs text-red-400">{rotationError}</span>
+        </div>
+      ) : (
+        <BackendCameraFeed
+          src={`${baseUrl}/camera-preview/${camera.camera_index}`}
+          width={camera.width}
+          height={camera.height}
+          rotation={camera.rotation}
+          ghostSrc={reference.url ?? undefined}
+          ghostOpacity={ghostOpacity}
+          name={camera.name}
+        />
+      )}
       </div>
 
       {/* Camera Info */}
@@ -523,8 +504,7 @@ const CameraPreview: React.FC<CameraPreviewProps> = ({
               </p>
             </div>
             <div className="text-xs text-gray-500">
-              Type: {camera.type} | Device:{" "}
-              {camera.device_id?.substring(0, 10)}...
+              Type: {camera.type}
             </div>
           </CollapsibleContent>
         </Collapsible>

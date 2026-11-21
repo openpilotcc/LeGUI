@@ -37,7 +37,7 @@ from starlette.responses import Response
 from starlette.types import Scope
 
 # Import our custom recording functionality
-from . import camera_reference, datasets as dataset_browser, record as _record
+from . import camera_preview, camera_reference, datasets as dataset_browser, record as _record
 
 # Import our custom calibration functionality
 from .calibrate import CalibrationRequest, calibration_manager
@@ -83,6 +83,7 @@ from .teleoperate import (
     handle_stop_teleoperation,
     handle_teleoperation_status,
 )
+from . import teleoperate as _teleoperate
 
 # Training is now job-based; see app/jobs.py.
 from .train import TrainingRequest
@@ -628,16 +629,39 @@ def recording_status():
 
 @app.get("/camera-feed/{cam_key}")
 def camera_feed(cam_key: str):
-    """Live MJPEG preview of one configured camera during an active recording.
+    """Live MJPEG preview of one configured camera during a robot session.
 
     Browsers render `multipart/x-mixed-replace` directly in an <img>, so the
-    frontend just points an <img> at this URL. Only valid while a session is
-    active; the generator ends itself when recording stops.
+    frontend just points an <img> at this URL. Valid while a recording or
+    teleoperation session is active (whichever holds the cameras); the
+    generator ends itself when the session stops.
     """
-    if not _record.recording_active:
-        raise HTTPException(status_code=409, detail="No active recording session")
+    if _record.recording_active:
+        return StreamingResponse(
+            _record.camera_feed_frames(cam_key),
+            media_type="multipart/x-mixed-replace; boundary=frame",
+        )
+    if _teleoperate.teleoperation_active:
+        return StreamingResponse(
+            camera_preview.teleop_camera_feed_frames(cam_key),
+            media_type="multipart/x-mixed-replace; boundary=frame",
+        )
+    raise HTTPException(status_code=409, detail="No active recording or teleoperation session")
+
+
+@app.get("/camera-preview/{index}")
+def camera_preview(index: int):
+    """On-demand MJPEG preview of any cv2 camera index.
+
+    Independent of robot sessions: the backend opens the device itself, so
+    browsers never need the camera API (which plain-HTTP LAN pages do not
+    have). The worker releases the device once no viewer is connected, so
+    recording can claim it exclusively.
+    """
+    if index < 0:
+        raise HTTPException(status_code=422, detail="Camera index must be >= 0")
     return StreamingResponse(
-        _record.camera_feed_frames(cam_key),
+        camera_preview.index_frames(index),
         media_type="multipart/x-mixed-replace; boundary=frame",
     )
 

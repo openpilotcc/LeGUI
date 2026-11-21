@@ -5,10 +5,8 @@ import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { useRobots } from "@/hooks/useRobots";
-import { useAvailableCameras } from "@/hooks/useAvailableCameras";
-import { previewDeviceId } from "@/lib/cameraConfig";
-import { CAMERA_SECURE_CONTEXT_KEY } from "@/lib/mediaDevices";
-import CameraFeed from "./CameraFeed";
+import { useApi } from "@/contexts/ApiContext";
+import BackendCameraFeed from "@/components/control/BackendCameraFeed";
 
 /**
  * Optional live camera panel for the teleoperation page. Off by default so we
@@ -23,22 +21,22 @@ import CameraFeed from "./CameraFeed";
  */
 const TeleopCameraPanel: React.FC = () => {
   const [enabled, setEnabled] = useState(false);
-  // Bumped by the retry button to remount the feeds (a fresh getUserMedia
-  // attempt) — useful if a camera was unplugged and reconnected.
+  // Bumped by the retry button to remount the feeds (a fresh stream attempt)
+  // — useful if a camera was unplugged and reconnected.
   const [reloadKey, setReloadKey] = useState(0);
+  const { baseUrl } = useApi();
   const { selectedRecord, isLoading: robotsLoading } = useRobots();
-  const { cameras: availableCameras, unavailable: camerasUnavailable } = useAvailableCameras({ enabled });
 
-  // Feeds come solely from the robot's configured cameras, streamed by their
-  // stored browser device_id or, in a browser that doesn't know that ID, by
-  // their cv2 index. A configured camera whose device is currently absent still
-  // shows (name + failed-preview placeholder), so the user can tell it's
-  // expected but not detected.
+  // Feeds come solely from the robot's configured cameras, streamed by the
+  // backend from their cv2 indices (see /camera-feed), so they work over
+  // plain-HTTP LAN access where browsers have no camera API. A configured
+  // camera whose device is currently absent still shows (name + failed-preview
+  // placeholder), so the user can tell it's expected but not detected.
   const configured = selectedRecord?.cameras ?? [];
   const feeds = configured.map((c) => ({
     key: c.id,
     name: c.name,
-    deviceId: previewDeviceId(c, availableCameras),
+    index: c.camera_index,
     rotation: c.rotation,
     width: c.width,
     height: c.height,
@@ -77,10 +75,10 @@ const TeleopCameraPanel: React.FC = () => {
         feeds.length > 0 ? (
           <div className="flex flex-col gap-3 overflow-y-auto">
             {feeds.map((feed) => (
-              <CameraFeed
+              <BackendCameraFeed
                 key={`${feed.key}:${reloadKey}`}
-                deviceId={feed.deviceId}
-                label={feed.name}
+                src={`${baseUrl}/camera-feed/${encodeURIComponent(feed.name)}`}
+                name={feed.name}
                 rotation={feed.rotation}
                 width={feed.width}
                 height={feed.height}
@@ -89,11 +87,9 @@ const TeleopCameraPanel: React.FC = () => {
           </div>
         ) : (
           <p className="text-sm text-gray-500">
-            {camerasUnavailable
-              ? i18n.t(CAMERA_SECURE_CONTEXT_KEY)
-              : robotsLoading
-                ? i18n.t("Loading robot...")
-                : i18n.t("No cameras configured for this robot. Add them during calibration to see live feeds here.")}
+            {robotsLoading
+              ? i18n.t("Loading robot...")
+              : i18n.t("No cameras configured for this robot. Add them during calibration to see live feeds here.")}
           </p>
         )
       ) : (

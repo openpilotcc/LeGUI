@@ -9,9 +9,9 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { AvailableCamera } from "@/hooks/useAvailableCameras";
-import { CAMERA_SECURE_CONTEXT_KEY, mediaDevicesAvailable } from "@/lib/mediaDevices";
+import { useApi } from "@/contexts/ApiContext";
 import { ImageFeatures } from "@/lib/checkpointsApi";
-import BrowserCameraPreview from "@/components/control/BrowserCameraPreview";
+import BackendCameraFeed from "@/components/control/BackendCameraFeed";
 import CameraRotationSelect from "@/components/control/CameraRotationSelect";
 import { CameraRotation, rotatedDimensions } from "@/lib/cameraConfig";
 
@@ -35,8 +35,10 @@ const CameraBindings: React.FC<CameraBindingsProps> = ({
   onRotate,
   availableCameras,
   paused,
-}) => (
-  <>
+}) => {
+  const { baseUrl } = useApi();
+  return (
+    <>
     {Object.entries(imageFeatures).map(([name, dims]) => {
       const value = bindings[name];
       const bound =
@@ -61,9 +63,7 @@ const CameraBindings: React.FC<CameraBindingsProps> = ({
             <SelectContent className="bg-gray-900 border-gray-700 text-white">
               {availableCameras.length === 0 ? (
                 <div className="px-2 py-1.5 text-xs text-gray-500">
-                  {mediaDevicesAvailable()
-                    ? i18n.t("No cameras detected")
-                    : i18n.t(CAMERA_SECURE_CONTEXT_KEY)}</div>
+                  {i18n.t("No cameras detected")}</div>
               ) : (
                 availableCameras.map((cam) => (
                   <SelectItem key={cam.index} value={String(cam.index)}>
@@ -78,18 +78,27 @@ const CameraBindings: React.FC<CameraBindingsProps> = ({
             disabled={!bound || paused}
             onChange={(angle) => onRotate(name, angle)}
           />
-          <BrowserCameraPreview
-            deviceId={bound?.deviceId ?? ""}
-            paused={paused}
-            rotation={rotation}
-            width={capture.width}
-            height={capture.height}
-            className="w-32 rounded border border-gray-700"
-          />
+          {value != null && !paused ? (
+            <BackendCameraFeed
+              src={`${baseUrl}/camera-preview/${value}`}
+              width={capture.width}
+              height={capture.height}
+              rotation={rotation}
+              name={name}
+            />
+          ) : (
+            <div
+              className="w-32 rounded border border-gray-700 bg-gray-900 flex items-center justify-center text-xs text-gray-500"
+              style={{ aspectRatio: `${capture.width} / ${capture.height}` }}
+            >
+              {i18n.t(paused ? "Preview paused" : "No camera selected")}
+            </div>
+          )}
         </div>
       );
     })}
   </>
-);
+  );
+};
 
 export default CameraBindings;
