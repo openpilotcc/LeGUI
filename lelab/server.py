@@ -37,7 +37,10 @@ from starlette.responses import Response
 from starlette.types import Scope
 
 # Import our custom recording functionality
-from . import camera_preview, camera_reference, datasets as dataset_browser, record as _record
+from . import camera_preview as _camera_preview
+from . import camera_reference
+from . import datasets as dataset_browser
+from . import record as _record
 
 # Import our custom calibration functionality
 from .calibrate import CalibrationRequest, calibration_manager
@@ -643,7 +646,7 @@ def camera_feed(cam_key: str):
         )
     if _teleoperate.teleoperation_active:
         return StreamingResponse(
-            camera_preview.teleop_camera_feed_frames(cam_key),
+            _camera_preview.teleop_camera_feed_frames(cam_key),
             media_type="multipart/x-mixed-replace; boundary=frame",
         )
     raise HTTPException(status_code=409, detail="No active recording or teleoperation session")
@@ -661,7 +664,7 @@ def camera_preview(index: int):
     if index < 0:
         raise HTTPException(status_code=422, detail="Camera index must be >= 0")
     return StreamingResponse(
-        camera_preview.index_frames(index),
+        _camera_preview.index_frames(index),
         media_type="multipart/x-mixed-replace; boundary=frame",
     )
 
