@@ -1,0 +1,61 @@
+site_name: LeGUI
+site_description: >-
+  LeRobot 图形界面（LeGUI）—— 基于 Hugging Face LeLab 的自主维护分支，
+  为自托管场景而增强：纯 HTTP 局域网可用、后端视频流、中文界面。
+site_url: https://openpilotcc.github.io/leLab/
+repo_url: https://github.com/openpilotcc/leLab
+repo_name: openpilotcc/leLab
+edit_uri: edit/feat/chinese-i18n/docs/
+
+theme:
+  name: material
+  language: zh
+  icon:
+    logo: fontawesome/solid/robot
+  features:
+    - navigation.tabs
+    - navigation.sections
+    - navigation.top
+    - navigation.footer
+    - search.highlight
+    - search.share
+    - content.code.copy
+  palette:
+    # 自动跟随系统，支持手动切换
+    - media: "(prefers-color-scheme: light)"
+      scheme: default
+      primary: indigo
+      accent: light blue
+      toggle:
+        icon: material/weather-sunny
+        name: 切换到深色模式
+    - media: "(prefers-color-scheme: dark)"
+      scheme: slate
+      primary: indigo
+      accent: light blue
+      toggle:
+        icon: material/weather-night
+        name: 切换到浅色模式
+
+nav:
+  - 首页: index.md
+  - 安装与升级: install.md
+  - 使用指南:
+      - 校准机械臂: guide/calibration.md
+      - 遥操作与相机: guide/teleoperation.md
+      - 录制与数据集: guide/record.md
+      - 训练策略: guide/train.md
+  - 局域网访问与更新: guide/network.md
+  - 出处与许可证: about.md
+
+markdown_extensions:
+  - admonition
+  - pymdownx.details
+  - pymdownx.superfences
+  - pymdownx.tabbed:
+      alternate_style: true
+  - toc:
+      permalink: true
+
+plugins:
+  - search

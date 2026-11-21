@@ -8,6 +8,7 @@
 
 [![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](./LICENSE)
 [![Upstream](https://img.shields.io/badge/upstream-huggingface%2FleLab-FFD21E)](https://github.com/huggingface/leLab)
+[📖 文档](https://openpilotcc.github.io/leLab/)
 
 </div>
 
