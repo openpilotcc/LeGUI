@@ -75,7 +75,7 @@ const RobotTile: React.FC<RobotTileProps> = ({
                   variant="ghost"
                   className="h-8 w-8 text-gray-300 hover:text-white"
                   onClick={() => onConfigure(robot.name)}
-                  aria-label="Configure"
+                  aria-label={i18n.t("Configure")}
                   data-tour="robot-configure"
                 >
                   <Settings className="w-4 h-4" />
