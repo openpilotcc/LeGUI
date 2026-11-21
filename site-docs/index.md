@@ -20,7 +20,7 @@ LeGUI 将 LeRobot 锁定在最新上游发布 tag（当前 **v0.7.0**）。校�
 
 ```bash
 uv tool install --force --with-executables-from huggingface_hub \
-  git+https://github.com/openpilotcc/leLab.git@feat/chinese-i18n
+  git+https://github.com/openpilotcc/LeGUI.git
 ```
 
 启动（局域网可访问）：

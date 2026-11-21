@@ -16,7 +16,7 @@
 
 ```bash
 uv tool install --force --with-executables-from huggingface_hub \
-  git+https://github.com/openpilotcc/leLab.git
+  git+https://github.com/openpilotcc/LeGUI.git
 ```
 
 说明：
@@ -39,7 +39,7 @@ lelab --stop            # 停止并释放端口
 
 ```bash
 uv tool install --force --with-executables-from huggingface_hub \
-  git+https://github.com/openpilotcc/leLab.git
+  git+https://github.com/openpilotcc/LeGUI.git
 ```
 
 然后重启服务即可。也可以直接使用页面右上角的「检查更新」——应用内的 **Update now** 按钮会重装同一个发布分支，不会覆盖你的本地增强（它会锁定安装时使用的分支名）。

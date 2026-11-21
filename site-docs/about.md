@@ -18,7 +18,7 @@ LeGUI 继承了 LeLab 的全部核心设计与实现——校准、遥操作、�
 
 - 原始代码版权归 **The HuggingFace Inc. team** 所有（见各源文件的版权头）；
 - 本分支的修改同样以 Apache License 2.0 发布；
-- [LICENSE](https://github.com/openpilotcc/leLab/blob/feat/chinese-i18n/LICENSE) 文件完整保留。
+- [LICENSE](https://github.com/openpilotcc/LeGUI/blob/main/LICENSE) 文件完整保留。
 
 ## 本分支相对上游的主要增强
 

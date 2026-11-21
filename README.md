@@ -8,7 +8,7 @@
 
 [![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](./LICENSE)
 [![Upstream](https://img.shields.io/badge/upstream-huggingface%2FleLab-FFD21E)](https://github.com/huggingface/leLab)
-[📖 文档](https://openpilotcc.github.io/leLab/)
+[📖 文档](https://openpilotcc.github.io/LeGUI/)
 
 </div>
 
@@ -35,7 +35,7 @@ LeGUI pins LeRobot to the latest upstream release tag (currently **`v0.7.0`**, s
 
 ```bash
 uv tool install --force --with-executables-from huggingface_hub \
-  git+https://github.com/openpilotcc/leLab.git
+  git+https://github.com/openpilotcc/LeGUI.git
 ```
 
 Then:

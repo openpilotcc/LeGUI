@@ -36,7 +36,7 @@ lelab --https --host 0.0.0.0
 
 ## 应用内更新
 
-页面右上角的更新检查会对比本仓库（openpilotcc/leLab）的提交：
+页面右上角的更新检查会对比本仓库（openpilotcc/LeGUI）的提交：
 
 - 显示 **有新版本可用** 时，点 **Update now** 或复制页面给出的命令执行——它重装的是**当前发布分支**（锁定 `@feat/chinese-i18n`），不会丢失本分支的任何增强；
 - 更新完成后重启服务（`lelab --stop` 再启动）。
@@ -45,7 +45,7 @@ lelab --https --host 0.0.0.0
 
 ```bash
 uv tool install --force --with-executables-from huggingface_hub \
-  git+https://github.com/openpilotcc/leLab.git
+  git+https://github.com/openpilotcc/LeGUI.git
 lelab --host 0.0.0.0
 ```
 
