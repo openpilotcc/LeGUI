@@ -276,7 +276,7 @@
   "Step Completed": "步骤完成",
   "Step Failed": "步骤失败",
   "Recording Ranges": "记录行程范围",
-  "Move EACH joint through its full range. A check appears next to each joint once its range is wide enough.": "将每个关节都转到完整的行程范围。当某个关节的范围足够大时，它旁边会出现勾选标记。",
+  "Move EACH joint through its full range. A check appears next to each joint once its range is wide enough.": "逐个转动除 wrist_roll 外的每个关节走完全行程（wrist_roll 可连续旋转，无需记录）。关节行程足够宽时旁边会出现勾选标记。",
   "Make sure to start the calibration with the robot in a middle position — all joints in the middle of their ranges. See the calibration demo below for the correct starting pose.": "校准开始前请确保机器人处于中间位置——所有关节都在行程范围中部。正确的起始姿势请参考下方校准演示。",
   "Range complete": "行程已满足",
   "Click here to view the calibration video": "点击查看校准演示视频",

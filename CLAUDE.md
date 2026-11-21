@@ -27,6 +27,12 @@ lelab --dev    # spawns Vite dev (:8080) + uvicorn --reload (:8000), opens brows
 
 Editable installs skip the frontend build: `lelab --dev` serves directly from Vite, and `lelab --rebuild` builds `frontend/dist/` with your local Node.js 22 when you want to try the production bundle. The SO-101 meshes in `frontend/public/` are kept out of LFS because installing from git does not fetch LFS files.
 
+### Calibration flow (web adaptation of lerobot's)
+
+The web calibration mirrors lerobot's semantics without its CLI interaction (`record_calibration` waits for ENTER per joint, which a headless server cannot do): the arm must be confirmed in the official middle position first (the `waiting_middle` step — that pose becomes each motor's half-turn zero via `set_half_turn_homings`), then all joints except the full-turn ones record their ranges in parallel (✓ marks), and full-turn joints (`FULL_TURN_MOTORS`, currently `wrist_roll`) are written as the whole encoder span instead of a recorded range — matching `record_calibration(full_turn_motors=[...])`.
+
+**Future work:** to fully mirror `record_calibration`'s interaction, rework the web flow into a per-joint sequential mode — one joint at a time, each confirmed with a button press (the web equivalent of ENTER) — instead of the parallel all-joints recording. That would guarantee every joint is swept through its entire range; the parallel flow relies on the user being thorough, guarded only by the width threshold. Not done yet: the parallel flow is faster for users and the threshold catches most under-sweeps.
+
 Run the Python tests with `pytest` (config in [pyproject.toml](pyproject.toml); install dev deps via `pip install -e ".[test]"`). Tests live in [tests/](tests/) and cover request schemas, pure helpers, and idle/mutex branches of the feature handlers — subprocess/thread happy paths and HF Jobs integration are deliberately not unit-tested. Lint with `ruff check` / `ruff format` (config in [pyproject.toml](pyproject.toml)). There is no Python build step; for end-to-end validation, run `lelab` and exercise endpoints (curl or via the frontend).
 
 ## Architecture

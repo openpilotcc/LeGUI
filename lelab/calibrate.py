@@ -57,6 +57,12 @@ _MAX_POSITION_JUMP = 2000
 # barely moved; the user is warned their range of motion looks insufficient.
 _MIN_CALIBRATION_RANGE = 100
 
+# SO-101 joints that rotate continuously and must NOT be range-limited. The
+# official lerobot calibration (record_calibration's full_turn_motors) gives
+# them the whole encoder span instead of a recorded range; mirroring that here
+# keeps the wrist from being clamped to whatever span happened to be swept.
+FULL_TURN_MOTORS = ("wrist_roll",)
+
 
 def _is_valid_position(pos: float) -> bool:
     """True when a raw Present_Position reading sits within the plausible encoder
@@ -377,7 +383,13 @@ class CalibrationManager:
                         valid_positions[motor] = pos
 
                 if len(valid_positions) == len(positions):  # All positions are valid
-                    self._start_positions = valid_positions
+                    # Full-turn joints are tracked nowhere: they spin
+                    # continuously, so neither their range nor the jump check
+                    # applies to them (a legitimate spin would false-trigger
+                    # the discontinuity guard).
+                    self._start_positions = {
+                        motor: pos for motor, pos in valid_positions.items() if motor not in FULL_TURN_MOTORS
+                    }
                     break
                 else:
                     logger.warning(f"Attempt {attempt + 1}: Got invalid initial positions, retrying...")
@@ -399,7 +411,7 @@ class CalibrationManager:
         self._update_status(
             status="recording",
             step=1,
-            message="Move ALL joints through their FULL ranges of motion - from minimum to maximum positions. Ensure each joint moves significantly from its starting position.",
+            message="Move ALL joints except wrist roll through their FULL ranges of motion - from minimum to maximum positions. The wrist roll spins continuously and is not recorded.",
             recorded_ranges={
                 motor: {"min": pos, "max": pos, "current": pos}
                 for motor, pos in self._start_positions.items()
@@ -427,6 +439,10 @@ class CalibrationManager:
                     # Only update if we have valid readings
                     if valid_positions:
                         for motor, pos in valid_positions.items():
+                            if motor not in self._mins:
+                                # Full-turn motor: no range tracking, and the
+                                # jump check would false-trigger on spins.
+                                continue
                             if (
                                 motor in prev_positions
                                 and abs(pos - prev_positions[motor]) > _MAX_POSITION_JUMP
@@ -437,9 +453,8 @@ class CalibrationManager:
                                     "- all joints in the middle of their ranges."
                                 )
                             prev_positions[motor] = pos
-                            if motor in self._mins:
-                                self._mins[motor] = min(self._mins[motor], pos)
-                                self._maxes[motor] = max(self._maxes[motor], pos)
+                            self._mins[motor] = min(self._mins[motor], pos)
+                            self._maxes[motor] = max(self._maxes[motor], pos)
 
                         # Update cached ranges for the status endpoint.
                         self._cache_recorded_ranges(valid_positions)
@@ -495,19 +510,25 @@ class CalibrationManager:
         # Create calibration dict
         calibration = {}
         for motor, m in self.device.bus.motors.items():
+            if motor in FULL_TURN_MOTORS:
+                # Continuous joint: official calibration spans the whole
+                # encoder instead of the recorded range.
+                range_min, range_max = 0, self.device.bus.resolution(m.model) - 1
+            else:
+                range_min, range_max = self._mins[motor], self._maxes[motor]
             calibration[motor] = MotorCalibration(
                 id=m.id,
                 drive_mode=0,
                 homing_offset=self._homing_offsets[motor],
-                range_min=self._mins[motor],
-                range_max=self._maxes[motor],
+                range_min=range_min,
+                range_max=range_max,
             )
             logger.info(
                 f"Calibration for {motor}: "
                 f"ID={m.id}, "
                 f"homing_offset={self._homing_offsets[motor]}, "
-                f"range_min={self._mins[motor]}, "
-                f"range_max={self._maxes[motor]}"
+                f"range_min={range_min}, "
+                f"range_max={range_max}"
             )
 
         # Write and save calibration
