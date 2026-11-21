@@ -23,7 +23,7 @@
   - the frontend survives insecure contexts (`crypto.randomUUID` fallback, same-origin API default);
   - a `--host` flag makes the server reachable from other machines.
 - **Chinese localization** — a language switcher in the top bar (English / 中文), persisted per browser.
-- **Calibration flow** aligned with lerobot v0.7 semantics: an explicit *confirm the middle position* step (that pose becomes the zero point, so leader and follower line up in teleoperation), and the continuous-rotation `wrist_roll` gets the full encoder span instead of a recorded range.
+- **Calibration flow** aligned with lerobot v0.7 semantics: an explicit _confirm the middle position_ step (that pose becomes the zero point, so leader and follower line up in teleoperation), and the continuous-rotation `wrist_roll` gets the full encoder span instead of a recorded range.
 - **Teleoperation camera streams** — the follower's cameras stream live during a session.
 - **Launcher flags** — `--host`, `--port`, `--https`, plus robust stop (`--stop --port`).
 
@@ -44,7 +44,7 @@ Then:
 lelab --host 0.0.0.0
 ```
 
-A page opens automatically; from other devices open `http://<server-ip>:8000`. The in-app *Update now* button reinstalls this same branch (updates are checked against this repository).
+A page opens automatically; from other devices open `http://<server-ip>:8000`. The in-app _Update now_ button reinstalls this same branch (updates are checked against this repository).
 
 ### Custom host and port
 

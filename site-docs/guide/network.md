@@ -4,13 +4,13 @@
 
 默认 `lelab` 只监听 `127.0.0.1`（仅本机可访问）。想在局域网内其他设备（平板、笔记本、手机浏览器）上使用，启动时加 `--host`：
 
-``` bash
+```bash
 lelab --host 0.0.0.0
 ```
 
 其他设备访问 `http://<服务器IP>:8000`。自定义端口与组合用法：
 
-``` bash
+```bash
 lelab --host 0.0.0.0 --port 9000   # 同时自定义 IP 绑定与端口
 lelab --stop --port 9000           # 停止自定义端口的服务实例
 lelab --dev                        # 开发模式（Vite :8080 + 后端 :8000）
@@ -28,7 +28,7 @@ LeGUI 的相机预览全部由**后端采集、MJPEG 视频流推给浏览器**�
 
 只有两种场景需要 HTTPS：浏览器语音指令，或某些内网策略强制要求。LeGUI 支持 `--https` 一键开启（自动生成自签名证书，SAN 覆盖服务器所有网卡 IP）：
 
-``` bash
+```bash
 lelab --https --host 0.0.0.0
 ```
 
@@ -43,7 +43,7 @@ lelab --https --host 0.0.0.0
 
 也可以随时手动执行：
 
-``` bash
+```bash
 uv tool install --force --with-executables-from huggingface_hub \
   git+https://github.com/openpilotcc/leLab.git
 lelab --host 0.0.0.0
@@ -53,7 +53,7 @@ lelab --host 0.0.0.0
 
 如果其他设备仍无法访问，检查服务器防火墙是否放行了端口：
 
-``` bash
+```bash
 sudo ufw status          # Ubuntu 常见为 ufw
 sudo ufw allow 8000/tcp  # 放行示例
 ```

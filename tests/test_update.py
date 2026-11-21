@@ -70,7 +70,8 @@ def test_installed_source_from_vcs(monkeypatch):
         ),
     )
     src = update.get_installed_source()
-    assert src == {"commit": "abc123", "owner": "huggingface", "repo": "leLab"}
+    # No requested_revision in the metadata: updates reinstall the default branch.
+    assert src == {"commit": "abc123", "owner": "huggingface", "repo": "leLab", "revision": ""}
 
 
 def test_installed_source_editable_returns_none(monkeypatch):

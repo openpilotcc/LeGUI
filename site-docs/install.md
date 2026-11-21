@@ -4,7 +4,7 @@
 
 - 一台 Linux 电脑（与机械臂同一局域网），装有 [uv](https://docs.astral.sh/uv/)（没有就先装）：
 
-  ``` bash
+  ```bash
   curl -LsSf https://astral.sh/uv/install.sh | sh
   ```
 
@@ -14,7 +14,7 @@
 
 一条命令同时装好 LeGUI 与 LeRobot（uv 会自动构建前端界面）：
 
-``` bash
+```bash
 uv tool install --force --with-executables-from huggingface_hub \
   git+https://github.com/openpilotcc/leLab.git
 ```
@@ -26,7 +26,7 @@ uv tool install --force --with-executables-from huggingface_hub \
 
 ## 启动与停止
 
-``` bash
+```bash
 lelab --host 0.0.0.0    # 启动，本机浏览器自动打开；其他设备访问 http://<服务器IP>:8000
 lelab --stop            # 停止并释放端口
 ```
@@ -37,7 +37,7 @@ lelab --stop            # 停止并释放端口
 
 发布分支有新提交后，重跑安装命令（加 `--force`）：
 
-``` bash
+```bash
 uv tool install --force --with-executables-from huggingface_hub \
   git+https://github.com/openpilotcc/leLab.git
 ```
