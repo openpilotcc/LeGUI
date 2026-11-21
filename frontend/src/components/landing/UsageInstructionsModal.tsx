@@ -56,9 +56,9 @@ const UsageInstructionsModal: React.FC<UsageInstructionsModalProps> = ({
         <DialogHeader className="text-center sm:text-center min-w-0">
           <DialogTitle className="text-white flex items-center justify-center gap-2 text-xl">
             <Terminal className="w-6 h-6" />
-            {i18n.t("Get Started with LeLab")}</DialogTitle>
+            {i18n.t("Get Started with LeGUI")}</DialogTitle>
           <DialogDescription>
-            {i18n.t("LeLab runs on your machine. Click the command to copy it, then paste in a terminal:")}</DialogDescription>
+            {i18n.t("LeGUI runs on your machine. Click the command to copy it, then paste in a terminal:")}</DialogDescription>
         </DialogHeader>
         <div className="space-y-4 py-2 min-w-0">
           <button
@@ -84,14 +84,14 @@ const UsageInstructionsModal: React.FC<UsageInstructionsModalProps> = ({
             </span>
           </button>
           <p className="text-gray-400 text-sm text-center">
-            {i18n.t("After running, your browser will open the local LeLab app.")}</p>
+            {i18n.t("After running, your browser will open the local LeGUI app.")}</p>
           <Button
             asChild
             className="w-full bg-blue-600 hover:bg-blue-700 text-white"
           >
             <a href={LOCAL_URL} target="_blank" rel="noopener noreferrer">
               <ExternalLink className="w-4 h-4 mr-2" />
-              {i18n.t("Open LeLab")}</a>
+              {i18n.t("Open LeGUI")}</a>
           </Button>
         </div>
       </DialogContent>

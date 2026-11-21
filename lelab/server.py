@@ -37,10 +37,13 @@ from starlette.responses import Response
 from starlette.types import Scope
 
 # Import our custom recording functionality
-from . import camera_preview as _camera_preview
-from . import camera_reference
-from . import datasets as dataset_browser
-from . import record as _record
+from . import (
+    camera_preview as _camera_preview,
+    camera_reference,
+    datasets as dataset_browser,
+    record as _record,
+    teleoperate as _teleoperate,
+)
 
 # Import our custom calibration functionality
 from .calibrate import CalibrationRequest, calibration_manager
@@ -86,7 +89,6 @@ from .teleoperate import (
     handle_stop_teleoperation,
     handle_teleoperation_status,
 )
-from . import teleoperate as _teleoperate
 
 # Training is now job-based; see app/jobs.py.
 from .train import TrainingRequest
@@ -982,7 +984,7 @@ def install_policy_extra_status(policy_type: str):
 
 @app.get("/system/update-check")
 def update_check():
-    """Report whether a newer LeLab commit exists on GitHub (cached, silent on failure)."""
+    """Report whether a newer LeGUI commit exists on GitHub (cached, silent on failure)."""
     return handle_update_check()
 
 

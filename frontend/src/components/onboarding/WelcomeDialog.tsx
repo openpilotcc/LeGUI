@@ -31,7 +31,7 @@ const WelcomeDialog: React.FC<WelcomeDialogProps> = ({
         <DialogHeader className="text-center sm:text-center">
           <DialogTitle className="flex items-center justify-center gap-2 text-xl text-white">
             <Compass className="h-6 w-6 text-blue-400" />
-            {i18n.t("Welcome to LeLab")}</DialogTitle>
+            {i18n.t("Welcome to LeGUI")}</DialogTitle>
           <DialogDescription>
             {i18n.t("New to teaching a robot arm? A two-minute guided tour walks you through the whole loop, no jargon required.")}</DialogDescription>
         </DialogHeader>

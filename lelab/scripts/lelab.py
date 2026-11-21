@@ -13,7 +13,7 @@
 # limitations under the License.
 
 """
-LeLab launcher.
+LeGUI launcher.
 
 Default mode starts FastAPI on :8000 and serves the built frontend/dist
 bundle from the same process. Dev mode starts Vite on :8080 and uvicorn
@@ -80,23 +80,23 @@ def _ensure_port_available(name: str, port: int, host: str = HOST) -> None:
         return
     _fail(
         f"{name} port {port} is already in use on {host}. "
-        "If a previous LeLab run is still holding it, run `lelab --stop` to free it, "
+        "If a previous LeGUI run is still holding it, run `lelab --stop` to free it, "
         "then run the command again."
     )
 
 
 def _find_lelab_pids(ports: set[int] | None = None) -> dict[int, str]:
-    """PIDs that look like a running LeLab dev backend/frontend, with a reason.
+    """PIDs that look like a running LeGUI dev backend/frontend, with a reason.
 
     On Windows the uvicorn --reload worker inherits the listening socket from
     its supervisor, so the OS attributes :8000 to a PID that may already be
     gone — neither the global connection table nor `taskkill` finds the live
-    holder. So match three independent signals and stay scoped to LeLab so we
+    holder. So match three independent signals and stay scoped to LeGUI so we
     never touch unrelated dev servers:
       1. cmdline runs `uvicorn ... lelab.server`  (the reload supervisor / prod)
       2. an orphaned reload worker (`multiprocessing.spawn`) whose cwd is this
          project
-      3. anything actually LISTENING on the LeLab ports  (per-process scan,
+      3. anything actually LISTENING on the LeGUI ports  (per-process scan,
          which is more reliable than the global table on Windows)
     """
     me = os.getpid()
@@ -130,19 +130,19 @@ def _find_lelab_pids(ports: set[int] | None = None) -> dict[int, str]:
 
 
 def _run_stop(port: int = BACKEND_PORT) -> None:
-    """Stop a running LeLab and free the backend port and :8080.
+    """Stop a running LeGUI and free the backend port and :8080.
 
     The escape hatch for when a previous run left an orphaned Vite or uvicorn
     process holding the ports.
     """
     targets = _find_lelab_pids({port, FRONTEND_DEV_PORT})
     if not targets:
-        logger.info("Nothing to stop: no LeLab process found on :%d / :%d.", port, FRONTEND_DEV_PORT)
+        logger.info("Nothing to stop: no LeGUI process found on :%d / :%d.", port, FRONTEND_DEV_PORT)
         return
     for pid, reason in targets.items():
         logger.info("Stopping pid %d (%s)...", pid, reason)
         _terminate_tree(pid)
-    logger.info("LeLab stopped.")
+    logger.info("LeGUI stopped.")
 
 
 def _local_ipv4_addresses() -> list[str]:
@@ -210,7 +210,7 @@ def _require_command(command: str) -> str:
         return resolved
     _fail(
         f"`{command}` was not found on PATH. Install Node.js LTS from https://nodejs.org/, "
-        "restart your terminal, then run LeLab again."
+        "restart your terminal, then run LeGUI again."
     )
 
 
@@ -227,7 +227,7 @@ def _ensure_frontend_path() -> None:
     if FRONTEND_PATH.exists():
         return
     _fail(
-        f"Frontend source not found at {FRONTEND_PATH}. Run LeLab from a complete checkout or reinstall it."
+        f"Frontend source not found at {FRONTEND_PATH}. Run LeGUI from a complete checkout or reinstall it."
     )
 
 
@@ -237,7 +237,7 @@ def _ensure_frontend_dist() -> None:
         return
     _fail(
         f"Built frontend not found at {index_html}. Run `lelab --rebuild`, "
-        "or run `cd frontend && npm run build`, then start LeLab again."
+        "or run `cd frontend && npm run build`, then start LeGUI again."
     )
 
 
@@ -376,7 +376,7 @@ def _install_signal_handlers() -> None:
     # Teardown of the child processes is owned by _run_dev's
     # `except BaseException` — the handler only needs to unwind.
     def shutdown(_signum, _frame) -> None:
-        logger.info("Shutting down LeLab...")
+        logger.info("Shutting down LeGUI...")
         raise SystemExit(0)
 
     signal.signal(signal.SIGINT, shutdown)
@@ -409,7 +409,7 @@ def _run_prod(
     _ensure_frontend_dist()
 
     scheme = "https" if ssl_certfile else "http"
-    logger.info("Starting LeLab on %s://localhost:%d ...", scheme, port)
+    logger.info("Starting LeGUI on %s://localhost:%d ...", scheme, port)
     if host not in ("127.0.0.1", "localhost"):
         logger.info(
             "Bound to %s: the UI and API accept connections from other machines on the network.",
@@ -444,7 +444,7 @@ def _run_prod(
         server.install_signal_handlers = lambda: None
 
         def _shutdown(_signum, _frame) -> None:
-            logger.info("Shutting down LeLab...")
+            logger.info("Shutting down LeGUI...")
             try:
                 # os._exit skips uvicorn's shutdown hook, which is what saves
                 # an active recording. Imported here: Ctrl+C can land while the
@@ -538,7 +538,7 @@ def _run_dev(*, no_open: bool = False, host: str = HOST, port: int = BACKEND_POR
 
 
 def _build_parser() -> argparse.ArgumentParser:
-    parser = argparse.ArgumentParser(prog="lelab", description="Run LeLab")
+    parser = argparse.ArgumentParser(prog="lelab", description="Run LeGUI")
     parser.add_argument(
         "--dev",
         action="store_true",
@@ -558,7 +558,7 @@ def _build_parser() -> argparse.ArgumentParser:
         "--host",
         default=HOST,
         help="Address to bind the backend (and, in --dev, the Vite server) to. "
-        "Use 0.0.0.0 to make LeLab reachable from other machines on the network.",
+        "Use 0.0.0.0 to make LeGUI reachable from other machines on the network.",
     )
     parser.add_argument(
         "--port",
@@ -586,7 +586,7 @@ def _build_parser() -> argparse.ArgumentParser:
     parser.add_argument(
         "--stop",
         action="store_true",
-        help="Stop a running LeLab and free its ports. Pass --port to match a custom backend port.",
+        help="Stop a running LeGUI and free its ports. Pass --port to match a custom backend port.",
     )
     return parser
 

@@ -11,9 +11,9 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-"""Notify users when a newer LeLab is available on GitHub.
+"""Notify users when a newer LeGUI is available on GitHub.
 
-LeLab installs from git (`pip install git+https://github.com/.../leLab.git`),
+LeGUI installs from git (`pip install git+https://github.com/.../leLab.git`),
 so "newer" means the default branch has moved past the installed commit. We
 read the installed commit from pip's `direct_url.json` and compare it to the
 repo HEAD via the GitHub API. Editable/local clones have no commit_id, so they
@@ -84,9 +84,10 @@ def _parse_github_repo(url: str) -> tuple[str, str] | None:
 def get_installed_source() -> dict[str, str] | None:
     """Read the installed git commit and origin repo from pip metadata.
 
-    Returns ``{"commit", "owner", "repo"}`` for a git install, or None for
-    editable/local/non-git installs (where there's nothing meaningful to
-    compare against).
+    Returns ``{"commit", "owner", "repo", "revision"}`` for a git install
+    (``revision`` being the requested ref, e.g. a branch, present only when
+    the install pinned one), or None for editable/local/non-git installs
+    (where there's nothing meaningful to compare against).
     """
     try:
         dist = distribution("lelab")
@@ -106,7 +107,12 @@ def get_installed_source() -> dict[str, str] | None:
     if repo is None:
         return None
     owner, name = repo
-    return {"commit": commit, "owner": owner, "repo": name}
+    # The requested ref (branch/tag) the install pinned, e.g.
+    # git+https://github.com/owner/repo.git@feat/chinese-i18n. Updates must
+    # reinstall THAT ref: the default branch of a fork does not carry the
+    # release branch's fixes.
+    revision = (data.get("vcs_info") or {}).get("requested_revision") or ""
+    return {"commit": commit, "owner": owner, "repo": name, "revision": revision}
 
 
 def _github_json(path: str) -> Any | None:
@@ -129,7 +135,7 @@ def _github_json(path: str) -> Any | None:
 
 
 def _is_uv_tool_install() -> bool:
-    """True when LeLab runs from a `uv tool install` (the standard install).
+    """True when LeGUI runs from a `uv tool install` (the standard install).
 
     uv tools live in an isolated env under `<data>/uv/tools/<name>/`, so the
     running interpreter sits inside a `uv/tools` path segment.
@@ -137,8 +143,8 @@ def _is_uv_tool_install() -> bool:
     return "uv/tools" in Path(sys.executable).as_posix()
 
 
-def _build_update_cmd(owner: str, repo: str) -> list[str]:
-    """Pick the right updater for how LeLab was installed.
+def _build_update_cmd(owner: str, repo: str, revision: str = "") -> list[str]:
+    """Pick the right updater for how LeGUI was installed.
 
     - Standard install is `uv tool install`: update the tool in place with
       `--force`, which re-fetches the latest commit even though the version
@@ -147,8 +153,12 @@ def _build_update_cmd(owner: str, repo: str) -> list[str]:
     - uv venv install: `uv pip install` pinned to this interpreter (uv venvs
       ship no pip), matching the extra-install flow in utils/system.py.
     - Plain pip env: `python -m pip install`.
+
+    The install's requested ref (branch/tag) is appended to the target: a
+    fork's default branch does not carry the release branch's fixes, so an
+    update must reinstall the same ref the user pinned.
     """
-    target = f"git+https://github.com/{owner}/{repo}.git"
+    target = f"git+https://github.com/{owner}/{repo}.git" + (f"@{revision}" if revision else "")
     if shutil.which("uv") and _is_uv_tool_install():
         return ["uv", "tool", "install", "--force", "--with-executables-from", "huggingface_hub", target]
     flags = ["--upgrade", "--force-reinstall", target]
@@ -157,9 +167,9 @@ def _build_update_cmd(owner: str, repo: str) -> list[str]:
     return [sys.executable, "-m", "pip", "install", *flags]
 
 
-def _update_command(owner: str, repo: str) -> str:
+def _update_command(owner: str, repo: str, revision: str = "") -> str:
     """The exact command the Update button runs — shown so manual copy matches."""
-    return shlex.join(_build_update_cmd(owner, repo))
+    return shlex.join(_build_update_cmd(owner, repo, revision))
 
 
 def _compute_status() -> dict[str, Any]:
@@ -172,7 +182,7 @@ def _compute_status() -> dict[str, Any]:
     base = UpdateStatus(
         update_available=False,
         current_commit=current,
-        update_command=_update_command(owner, repo),
+        update_command=_update_command(owner, repo, source.get("revision", "")),
         can_auto_update=True,
     )
 
@@ -235,7 +245,7 @@ def handle_run_update() -> UpdateResult:
         )
     try:
         proc = subprocess.run(
-            _build_update_cmd(source["owner"], source["repo"]),
+            _build_update_cmd(source["owner"], source["repo"], source.get("revision", "")),
             capture_output=True,
             text=True,
             timeout=600,

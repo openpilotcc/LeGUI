@@ -47,9 +47,9 @@ ROBOTS_PATH = os.path.expanduser("~/.cache/huggingface/lerobot/robots")
 # Saved camera reference frames, one PNG per robot/camera (see lelab/camera_reference.py)
 CAMERA_REFERENCES_PATH = os.path.expanduser("~/.cache/huggingface/lerobot/camera_references")
 
-# Tag stamped on every dataset pushed to the Hub from LeLab, so we can later
-# query the Hub for LeLab-produced datasets and compute usage metrics.
-LELAB_TAG = "LeLab"
+# Tag stamped on every dataset pushed to the Hub from LeGUI, so we can later
+# query the Hub for LeGUI-produced datasets and compute usage metrics.
+LELAB_TAG = "LeGUI"
 
 
 def with_lelab_tag(tags: list[str] | None) -> list[str]:

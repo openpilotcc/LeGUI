@@ -20,7 +20,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useUpdateCheck } from "@/hooks/useUpdateCheck";
 
 /**
- * App-level popup that notifies the user when a newer LeLab is available on
+ * App-level popup that notifies the user when a newer LeGUI is available on
  * GitHub. Offers a copy-able upgrade command, a best-effort "Update now" button
  * (runs the pip upgrade on the backend), and a "don't ask again" opt-out.
  */
@@ -101,7 +101,7 @@ const UpdateNotice = () => {
         <DialogHeader>
           <DialogTitle className="flex items-center gap-3 text-white">
             <Sparkles className="w-5 h-5 text-amber-400" />
-            {i18n.t("LeLab update available")}</DialogTitle>
+            {i18n.t("LeGUI update available")}</DialogTitle>
           <DialogDescription className="text-slate-300">
             You're {behind} 😱.
             <br />

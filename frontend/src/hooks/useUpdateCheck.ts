@@ -25,7 +25,7 @@ interface UseUpdateCheckResult {
 }
 
 /**
- * Checks GitHub (via the backend) once on load for a newer LeLab and decides
+ * Checks GitHub (via the backend) once on load for a newer LeGUI and decides
  * whether to surface the update popup. Skipped on the hosted HF Space (a
  * different runtime that can't be updated this way) and silent on any failure.
  */

@@ -11,7 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-"""The argv LeLab builds, run through the installed LeRobot's own CLI parsers.
+"""The argv LeGUI builds, run through the installed LeRobot's own CLI parsers.
 
 The argv-shape tests elsewhere cannot see a flag LeRobot renamed or dropped:
 they all passed while every training run died on `--wandb.enable`.

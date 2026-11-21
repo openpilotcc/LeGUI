@@ -192,5 +192,5 @@ def test_with_lelab_tag_handles_none_and_empty() -> None:
 def test_with_lelab_tag_dedupes() -> None:
     from lelab.utils.config import LELAB_TAG, with_lelab_tag
 
-    # Caller-supplied LeLab is not duplicated, and order is preserved.
+    # Caller-supplied LeGUI is not duplicated, and order is preserved.
     assert with_lelab_tag(["robotics", LELAB_TAG, "lerobot"]) == ["robotics", LELAB_TAG, "lerobot"]

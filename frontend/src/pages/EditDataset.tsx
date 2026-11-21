@@ -83,7 +83,7 @@ const EditDataset = () => {
   const { selectedRecord } = useRobots();
   const recording = useRecording(selectedRecord);
   // LeRobot only appends episodes recorded with the same robot at the same fps,
-  // and LeLab records with the SO-101 follower.
+  // and LeGUI records with the SO-101 follower.
   const appendTarget =
     repoId && data?.success && data.fps && data.robot_type === FOLLOWER_ROBOT_TYPE
       ? {

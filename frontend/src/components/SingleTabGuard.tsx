@@ -138,7 +138,7 @@ const SingleTabGuard = ({ children }: { children: ReactNode }) => {
         >
           <div className="mx-4 max-w-md space-y-4 rounded-lg border bg-background p-6 text-center shadow-lg">
             <h2 className="text-lg font-semibold">
-              {i18n.t("LeLab is already open in another tab")}</h2>
+              {i18n.t("LeGUI is already open in another tab")}</h2>
             <p className="text-sm text-muted-foreground">
               {i18n.t("Only one tab can control the robot at a time. Switch back to the original tab, or take over here — the other tab will lock.")}</p>
             <Button onClick={takeOver}>{i18n.t("Use this tab")}</Button>
