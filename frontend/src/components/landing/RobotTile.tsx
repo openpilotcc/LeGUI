@@ -42,7 +42,7 @@ const RobotTile: React.FC<RobotTileProps> = ({
   onDelete,
 }) => {
   const [confirmDelete, setConfirmDelete] = useState(false);
-  const status = robot ? (robot.is_clean ? "Ready" : i18n.t("Needs configuration")) : null;
+  const status = robot ? (robot.is_clean ? i18n.t("Ready") : i18n.t("Needs configuration")) : null;
   const teleopDisabled = !robot || !robot.is_clean;
 
   return (
