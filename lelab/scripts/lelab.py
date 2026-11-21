@@ -51,6 +51,9 @@ FRONTEND_NODE_MODULES = FRONTEND_PATH / "node_modules"
 HOST = "127.0.0.1"
 BACKEND_PORT = 8000
 FRONTEND_DEV_PORT = 8080
+CERTS_DIR = Path(os.path.expanduser("~/.cache/huggingface/lerobot/certs"))
+CERT_PATH = CERTS_DIR / "lelab-cert.pem"
+KEY_PATH = CERTS_DIR / "lelab-key.pem"
 
 
 def _fail(message: str) -> NoReturn:
@@ -140,6 +143,65 @@ def _run_stop(port: int = BACKEND_PORT) -> None:
         logger.info("Stopping pid %d (%s)...", pid, reason)
         _terminate_tree(pid)
     logger.info("LeLab stopped.")
+
+
+def _local_ipv4_addresses() -> list[str]:
+    """Every IPv4 address of this host, best effort, for the cert SAN list."""
+    addresses = {"127.0.0.1"}
+    try:
+        hostname = socket.gethostname()
+        for info in socket.getaddrinfo(hostname, None, socket.AF_INET):
+            addresses.add(info[4][0])
+    except OSError:
+        pass
+    # The connect trick finds the interface that owns the default route, which
+    # getaddrinfo(hostname) sometimes misses.
+    probe = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+    try:
+        probe.connect(("8.8.8.8", 80))
+        addresses.add(probe.getsockname()[0])
+    except OSError:
+        pass
+    finally:
+        probe.close()
+    return sorted(addresses)
+
+
+def _generate_self_signed_cert(cert_path: Path, key_path: Path) -> None:
+    """Create a self-signed certificate covering localhost and every local IP.
+
+    Browsers only expose the camera API to secure contexts, so serving over
+    HTTPS is what makes live camera previews work from other machines on the
+    LAN. The certificate is self-signed, so each browser shows a one-time
+    "untrusted certificate" warning that the user accepts to proceed.
+    """
+    _require_command("openssl")
+    san = ",".join(["DNS:localhost"] + [f"IP:{ip}" for ip in _local_ipv4_addresses()])
+    cert_path.parent.mkdir(parents=True, exist_ok=True)
+    subprocess.run(
+        [
+            "openssl",
+            "req",
+            "-x509",
+            "-newkey",
+            "rsa:2048",
+            "-sha256",
+            "-days",
+            "825",
+            "-nodes",
+            "-keyout",
+            str(key_path),
+            "-out",
+            str(cert_path),
+            "-subj",
+            "/CN=lelab-local",
+            "-addext",
+            f"subjectAltName={san}",
+        ],
+        check=True,
+        capture_output=True,
+    )
+    logger.info("Generated self-signed certificate at %s (SAN: %s)", cert_path, san)
 
 
 def _require_command(command: str) -> str:
@@ -298,14 +360,14 @@ def _open_browser_url(url: str, no_open: bool) -> None:
     webbrowser.open(url)
 
 
-def _open_browser_when_ready(port: int, no_open: bool) -> None:
+def _open_browser_when_ready(port: int, no_open: bool, scheme: str = "http") -> None:
     if no_open:
-        logger.info("Browser launch disabled. Open http://localhost:%d/ when ready.", port)
+        logger.info("Browser launch disabled. Open %s://localhost:%d/ when ready.", scheme, port)
         return
 
     for _ in range(60):
         if _is_port_open(port):
-            _open_browser_url(f"http://localhost:{port}/", no_open=False)
+            _open_browser_url(f"{scheme}://localhost:{port}/", no_open=False)
             return
         time.sleep(0.5)
 
@@ -337,6 +399,8 @@ def _run_prod(
     rebuild: bool = False,
     host: str = HOST,
     port: int = BACKEND_PORT,
+    ssl_certfile: str | None = None,
+    ssl_keyfile: str | None = None,
 ) -> None:
     """Serve built frontend from backend on a single port."""
     _ensure_port_available("Backend", port, host=host)
@@ -344,13 +408,19 @@ def _run_prod(
         _run_frontend_build()
     _ensure_frontend_dist()
 
-    logger.info("Starting LeLab on http://localhost:%d ...", port)
+    scheme = "https" if ssl_certfile else "http"
+    logger.info("Starting LeLab on %s://localhost:%d ...", scheme, port)
     if host not in ("127.0.0.1", "localhost"):
         logger.info(
             "Bound to %s: the UI and API accept connections from other machines on the network.",
             host,
         )
-    threading.Thread(target=_open_browser_when_ready, args=(port, no_open), daemon=True).start()
+    if ssl_certfile:
+        logger.info(
+            "HTTPS enabled with a self-signed certificate: browsers show a one-time "
+            "warning; accept it to use the camera over the network."
+        )
+    threading.Thread(target=_open_browser_when_ready, args=(port, no_open, scheme), daemon=True).start()
 
     config = uvicorn.Config(
         "lelab.server:app",
@@ -359,6 +429,8 @@ def _run_prod(
         log_level="info",
         reload=False,
         timeout_graceful_shutdown=2,
+        ssl_certfile=ssl_certfile,
+        ssl_keyfile=ssl_keyfile,
     )
     server = uvicorn.Server(config)
 
@@ -495,6 +567,23 @@ def _build_parser() -> argparse.ArgumentParser:
         help="Port to serve the backend (UI and API) on.",
     )
     parser.add_argument(
+        "--https",
+        action="store_true",
+        help="Serve over HTTPS with an auto-generated self-signed certificate "
+        "(production mode only). Required for browser camera access from "
+        "other machines; accept the one-time browser warning.",
+    )
+    parser.add_argument(
+        "--ssl-certfile",
+        default=None,
+        help="Path to a custom TLS certificate (production mode only). Overrides --https.",
+    )
+    parser.add_argument(
+        "--ssl-keyfile",
+        default=None,
+        help="Path to a custom TLS private key (production mode only).",
+    )
+    parser.add_argument(
         "--stop",
         action="store_true",
         help="Stop a running LeLab and free its ports. Pass --port to match a custom backend port.",
@@ -513,10 +602,32 @@ def main(argv: Sequence[str] | None = None) -> None:
     if args.dev and args.rebuild:
         parser.error("--rebuild is for production mode; dev mode serves from Vite.")
 
+    if args.dev and (args.https or args.ssl_certfile or args.ssl_keyfile):
+        parser.error("--https/--ssl are for production mode; dev mode serves from Vite.")
+
+    ssl_certfile = args.ssl_certfile
+    ssl_keyfile = args.ssl_keyfile
+    if args.https and not ssl_certfile:
+        if CERT_PATH.exists() and KEY_PATH.exists():
+            logger.info("Reusing existing self-signed certificate at %s", CERT_PATH)
+        else:
+            _generate_self_signed_cert(CERT_PATH, KEY_PATH)
+        ssl_certfile = str(CERT_PATH)
+        ssl_keyfile = str(KEY_PATH)
+    if bool(ssl_certfile) != bool(ssl_keyfile):
+        parser.error("--ssl-certfile and --ssl-keyfile must be passed together.")
+
     if args.dev:
         _run_dev(no_open=args.no_open, host=args.host, port=args.port)
     else:
-        _run_prod(no_open=args.no_open, rebuild=args.rebuild, host=args.host, port=args.port)
+        _run_prod(
+            no_open=args.no_open,
+            rebuild=args.rebuild,
+            host=args.host,
+            port=args.port,
+            ssl_certfile=ssl_certfile,
+            ssl_keyfile=ssl_keyfile,
+        )
 
 
 if __name__ == "__main__":

@@ -465,6 +465,90 @@ def test_parser_accepts_custom_port() -> None:
     assert args.port == 9000
 
 
+def test_parser_accepts_https_flag() -> None:
+    import lelab.scripts.lelab as launcher
+
+    args = launcher._build_parser().parse_args(["--https"])
+
+    assert args.https is True
+    assert args.ssl_certfile is None
+    assert args.ssl_keyfile is None
+
+
+def test_parser_accepts_custom_ssl_paths() -> None:
+    import lelab.scripts.lelab as launcher
+
+    args = launcher._build_parser().parse_args(
+        ["--ssl-certfile", "/tmp/c.pem", "--ssl-keyfile", "/tmp/k.pem"]
+    )
+
+    assert args.ssl_certfile == "/tmp/c.pem"
+    assert args.ssl_keyfile == "/tmp/k.pem"
+
+
+def test_https_is_rejected_in_dev_mode(
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    import lelab.scripts.lelab as launcher
+
+    with pytest.raises(SystemExit):
+        launcher.main(["--dev", "--https"])
+
+
+def test_run_prod_passes_ssl_files_to_uvicorn(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    import lelab.scripts.lelab as launcher
+
+    dist = tmp_path / "dist"
+    dist.mkdir()
+    (dist / "index.html").write_text("<html></html>")
+    captured: dict[str, object] = {}
+
+    def fake_config(_app, **kwargs):
+        captured.update(kwargs)
+        return MagicMock()
+
+    monkeypatch.setattr(launcher, "FRONTEND_DIST", dist)
+    monkeypatch.setattr(launcher, "_ensure_port_available", lambda *_args, **_kwargs: None)
+    monkeypatch.setattr(launcher.threading, "Thread", _ImmediateThread)
+    monkeypatch.setattr(launcher.uvicorn, "Config", fake_config)
+    monkeypatch.setattr(launcher.uvicorn, "Server", lambda _config: MagicMock())
+    monkeypatch.setattr(launcher.signal, "signal", lambda *_a, **_k: None)
+
+    launcher._run_prod(no_open=True, ssl_certfile="/tmp/c.pem", ssl_keyfile="/tmp/k.pem")
+
+    assert captured["ssl_certfile"] == "/tmp/c.pem"
+    assert captured["ssl_keyfile"] == "/tmp/k.pem"
+
+
+def test_generate_self_signed_cert_includes_local_ips(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    import lelab.scripts.lelab as launcher
+
+    runs: list[list[str]] = []
+
+    def fake_run(command, **_kwargs):
+        runs.append(list(command))
+        return MagicMock(returncode=0)
+
+    monkeypatch.setattr(launcher, "_require_command", lambda _command: _command)
+    monkeypatch.setattr(launcher, "_local_ipv4_addresses", lambda: ["127.0.0.1", "10.10.40.2"])
+    monkeypatch.setattr(launcher.subprocess, "run", fake_run)
+
+    cert = tmp_path / "cert.pem"
+    key = tmp_path / "key.pem"
+    launcher._generate_self_signed_cert(cert, key)
+
+    assert len(runs) == 1
+    san_arg = runs[0][runs[0].index("-addext") + 1]
+    assert san_arg.startswith("subjectAltName=DNS:localhost")
+    assert "IP:10.10.40.2" in san_arg
+
+
 def test_run_prod_binds_requested_host(
     monkeypatch: pytest.MonkeyPatch,
     tmp_path: Path,
