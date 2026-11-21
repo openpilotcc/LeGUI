@@ -48,23 +48,24 @@ FPS = 10.0
 # How long a worker keeps an opened device around after its last viewer
 # disconnected — short, so recording can claim the camera exclusively again.
 IDLE_RELEASE_SECONDS = 5.0
-# How long a stream generator waits for the first frame before ending itself
-# (device open can take a moment; the frontend retries with a cache-buster).
-FIRST_FRAME_TIMEOUT_SECONDS = 10.0
 
 
 class _IndexWorker:
     """Opens one cv2 camera index and keeps the latest JPEG frame ready.
 
-    The run loop stops once no viewer has been registered for
-    IDLE_RELEASE_SECONDS, releasing the device for other claimants (the
-    recorder, the teleop robot). A new viewer restarts a fresh worker.
+    Opening can transiently fail while another claimant (the recorder, a
+    sibling camera worker on the same USB controller) holds the bus, so the
+    run loop retries the open every couple of seconds and keeps the stream
+    alive with the rendered error notice — once the device becomes free the
+    same stream silently turns into live frames. The worker exits only after
+    IDLE_RELEASE_SECONDS with no viewers, releasing the device.
     """
 
     def __init__(self, index: int) -> None:
         self.index = index
         self.lock = threading.Lock()
         self.jpeg: bytes | None = None
+        self.error: str | None = None
         self.viewers = 0
         # Monotonic timestamp of the last viewer disconnect; while any viewer
         # is connected (`viewers > 0`) the idle check never fires.
@@ -78,32 +79,47 @@ class _IndexWorker:
         with self.lock:
             return self.jpeg
 
+    def error_text(self) -> str | None:
+        with self.lock:
+            return self.error
+
     def _run(self) -> None:
         import cv2
 
-        cap = cv2.VideoCapture(self.index)
+        cap = None
         try:
-            if not cap.isOpened():
-                # Device missing or held exclusively (e.g. by an active
-                # recording); exit so the stream ends and the frontend shows
-                # its placeholder instead of hanging on a dead worker.
-                logger.warning("camera-preview %d: could not open the device", self.index)
-                return
-            interval = 1.0 / FPS
             while True:
                 with self.lock:
                     idle = self.viewers == 0
                 if idle and time.monotonic() - self.last_viewer_gone > IDLE_RELEASE_SECONDS:
                     break
+
+                if cap is None or not cap.isOpened():
+                    if cap is not None:
+                        cap.release()
+                        cap = None
+                    cap = cv2.VideoCapture(self.index)
+                    if not cap.isOpened():
+                        cap.release()
+                        cap = None
+                        with self.lock:
+                            self.error = "camera unavailable"
+                        time.sleep(2.0)
+                        continue
+                    with self.lock:
+                        self.error = None
+
                 ok, frame = cap.read()
                 if ok:
                     ok, buf = cv2.imencode(".jpg", frame)
                     if ok:
                         with self.lock:
                             self.jpeg = buf.tobytes()
-                time.sleep(interval)
+                            self.error = None
+                time.sleep(1.0 / FPS)
         finally:
-            cap.release()
+            if cap is not None:
+                cap.release()
 
     def alive(self) -> bool:
         return self.thread.is_alive()
@@ -130,31 +146,23 @@ class PreviewManager:
                 worker.start()
             worker.viewers += 1
         try:
-            interval = 1.0 / fps
-            deadline = time.monotonic() + FIRST_FRAME_TIMEOUT_SECONDS
-            announced_dead = False
+            # While the worker retries the device open, keep the stream alive
+            # by re-rendering the error notice at a slow rate — an <img> shows
+            # the notice now and silently turns into live frames once the
+            # device becomes available. Live frames flow at `fps`.
             while True:
-                # A worker that exited (device unplugable, open failure) ends
-                # the stream with a rendered notice; a live one that hasn't
-                # produced its first frame yet gets the warm-up window.
                 if not worker.alive():
-                    if not announced_dead:
-                        yield (
-                            b"--frame\r\nContent-Type: image/jpeg\r\n\r\n"
-                            + _error_jpeg("camera unavailable")
-                            + b"\r\n"
-                        )
-                        announced_dead = True
+                    # Worker exited for its own reason (idle release): end the
+                    # stream so the frontend's retry loop takes over.
                     break
                 frame = worker.frame()
                 if frame is not None:
                     yield b"--frame\r\nContent-Type: image/jpeg\r\n\r\n" + frame + b"\r\n"
-                    announced_dead = False
-                    time.sleep(interval)
-                    continue
-                if time.monotonic() > deadline:
-                    break
-                time.sleep(0.1)
+                    time.sleep(1.0 / fps)
+                else:
+                    notice = worker.error_text() or "camera unavailable"
+                    yield (b"--frame\r\nContent-Type: image/jpeg\r\n\r\n" + _error_jpeg(notice) + b"\r\n")
+                    time.sleep(1.0)
         finally:
             with self._lock:
                 worker.viewers -= 1

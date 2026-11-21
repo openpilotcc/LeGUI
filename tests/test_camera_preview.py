@@ -131,7 +131,7 @@ def test_worker_releases_camera_after_viewers_leave(fake_cv2, monkeypatch: pytes
     assert captures and captures[0].released
 
 
-def test_unopenable_device_ends_the_stream_with_a_notice(fake_cv2, monkeypatch: pytest.MonkeyPatch) -> None:
+def test_dead_worker_ends_the_stream_immediately(fake_cv2, monkeypatch: pytest.MonkeyPatch) -> None:
     from lelab import camera_preview
 
     def dead_worker(_index: int):
@@ -145,11 +145,33 @@ def test_unopenable_device_ends_the_stream_with_a_notice(fake_cv2, monkeypatch: 
 
     monkeypatch.setattr(camera_preview, "_IndexWorker", dead_worker)
     gen = camera_preview.index_frames(7)
-    chunks = _drain(gen, expected_chunks=5)
 
-    # The generator ends itself and, on the way out, yields one error frame.
-    assert len(chunks) == 1
-    assert b"camera unavailable" in chunks[0]
+    # The worker already exited, so the generator ends without emitting
+    # anything and the frontend's retry loop takes over.
+    assert list(gen) == []
+
+
+def test_error_notice_streams_while_the_worker_retries(fake_cv2, monkeypatch: pytest.MonkeyPatch) -> None:
+    from lelab import camera_preview
+
+    def retrying_worker(_index: int):
+        return SimpleNamespace(
+            frame=lambda: None,
+            alive=lambda: True,
+            error_text=lambda: "camera unavailable",
+            viewers=0,
+            start=lambda: None,
+            last_viewer_gone=time.monotonic(),
+        )
+
+    monkeypatch.setattr(camera_preview, "_IndexWorker", retrying_worker)
+    gen = camera_preview.index_frames(7)
+    chunks = _drain(gen, expected_chunks=2)
+
+    # The stream stays alive, re-rendering the notice so the <img> shows why
+    # no live frames are flowing yet.
+    assert len(chunks) == 2
+    assert all(b"camera unavailable" in chunk for chunk in chunks)
 
 
 def test_second_viewer_reuses_the_same_worker(fake_cv2) -> None:
